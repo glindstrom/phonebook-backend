@@ -1,5 +1,8 @@
 const express = require("express");
 const app = express();
+const bodyParser = require('body-parser')
+
+app.use(bodyParser.json())
 
 let persons = [
   {
@@ -24,8 +27,8 @@ let persons = [
   }
 ];
 
-app.get("/api/persons", (req, res) => {
-  res.json(persons);
+app.get("/api/persons", (request, response) => {
+  response.json(persons);
 });
 
 app.get("/api/persons/:id", (request, response) => {
@@ -39,15 +42,25 @@ app.get("/api/persons/:id", (request, response) => {
   }
 });
 
-app.delete("/api/persons/:id", (req, res) => {
-  const id = Number(req.params.id);
-  persons = persons.filter(p => p.id !== id);
+app.post("/api/persons", (request, response) => {
+  console.log(request.body);
+  const person = request.body;
+  const id = Math.floor(Math.random() * Math.floor(Number.MAX_SAFE_INTEGER));
+  person.id = id;
+  persons = persons.concat(person);
 
-  res.status(204).end();
+  response.json(person);
 });
 
-app.get("/info", (req, res) => {
-  res.send(
+app.delete("/api/persons/:id", (request, response) => {
+  const id = Number(request.params.id);
+  persons = persons.filter(p => p.id !== id);
+
+  response.status(204).end();
+});
+
+app.get("/info", (request, response) => {
+  response.send(
     "<div>Phonebook has info for " +
       persons.length +
       " people</div><div>" +
