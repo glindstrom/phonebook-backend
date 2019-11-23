@@ -1,17 +1,41 @@
 const express = require("express");
 const app = express();
-const bodyParser = require('body-parser')
-const morgan = require("morgan")
-const cors = require('cors')
+const bodyParser = require("body-parser");
+const morgan = require("morgan");
+const cors = require("cors");
+const mongoose = require("mongoose");
 
 morgan.token("req-body", (req, res) => {
-  return JSON.stringify(req.body)
-})
+  return JSON.stringify(req.body);
+});
 
-app.use(express.static('build'))
-app.use(bodyParser.json())
-app.use(morgan(":method :url :status :res[content-length] - :response-time ms :req-body"))
-app.use(cors())
+app.use(express.static("build"));
+app.use(bodyParser.json());
+app.use(
+  morgan(
+    ":method :url :status :res[content-length] - :response-time ms :req-body"
+  )
+);
+app.use(cors());
+
+const MONGO_PASSWORD = process.env.MONGO_PASSWORD;
+const url = `mongodb+srv://fullstack:${MONGO_PASSWORD}@cluster0-ikdln.mongodb.net/phonebook?retryWrites=true&w=majority`;
+mongoose.connect(url, { useUnifiedTopology: true, useNewUrlParser: true });
+
+const personSchema = new mongoose.Schema({
+  name: String,
+  number: String
+});
+
+personSchema.set("toJSON", {
+  transform: (document, returnedObject) => {
+    returnedObject.id = returnedObject._id.toString();
+    delete returnedObject._id;
+    delete returnedObject.__v;
+  }
+});
+
+const Person = mongoose.model("Person", personSchema);
 
 let persons = [
   {
@@ -37,7 +61,9 @@ let persons = [
 ];
 
 app.get("/api/persons", (request, response) => {
-  response.json(persons);
+  Person.find({}).then(persons => {
+    response.json(persons.map(person => person.toJSON()));
+  });
 });
 
 app.get("/api/persons/:id", (request, response) => {
@@ -55,18 +81,18 @@ app.post("/api/persons", (request, response) => {
   const person = request.body;
   if (!person.name) {
     return response.status(400).json({
-      error: 'name is missing'
-    })
+      error: "name is missing"
+    });
   } else if (!person.number) {
     return response.status(400).json({
-      error: 'number is missing'
-    })
+      error: "number is missing"
+    });
   }
-  
+
   if (persons.some(p => p.name === person.name)) {
     return response.status(400).json({
-      error: 'name must be unique'
-    })
+      error: "name must be unique"
+    });
   }
 
   const id = Math.floor(Math.random() * Math.floor(Number.MAX_SAFE_INTEGER));
